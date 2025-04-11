@@ -678,30 +678,78 @@
       });
 
       // Thêm system prompt chi tiết
-      await chat.sendMessage(`Bạn là trợ lý AI chuyên về tư vấn hướng nghiệp cho học sinh cấp 3. Khi trả lời:
-        - Giúp học sinh khám phá sở thích và điểm mạnh trong học tập
-        - Phân tích mối liên hệ giữa các môn học yêu thích và ngành nghề tương lai
-        - Gợi ý các trường đại học phù hợp với nguyện vọng và khả năng
-        - Đề xuất lộ trình học tập và chuẩn bị cho ngành học mong muốn
-        - Cung cấp thông tin về điểm chuẩn, học phí và cơ hội việc làm
-        - Gợi ý các hoạt động ngoại khóa để phát triển kỹ năng
-        - Kết thúc bằng các bước hành động cụ thể để đạt mục tiêu`);
+      await chat.sendMessage(`Bạn là trợ lý AI chuyên về tư vấn hướng nghiệp cho học sinh cấp 3. Khi trả lời, hãy tuân theo cấu trúc sau:
+
+I. Khám phá và Phân tích
+   1. Tìm hiểu sở thích cá nhân của học sinh
+   2. Xác định điểm mạnh trong học tập
+   3. Phân tích mối liên hệ giữa môn học yêu thích và nghề nghiệp
+
+II. Tư vấn và Định hướng
+   1. Gợi ý các ngành nghề phù hợp dựa trên:
+      a. Sở thích cá nhân
+      b. Điểm mạnh học thuật
+      c. Xu hướng thị trường
+   2. Thông tin về các trường đại học:
+      a. Danh sách trường phù hợp
+      b. Điểm chuẩn tham khảo
+      c. Học phí và học bổng
+
+III. Lộ trình Phát triển
+   1. Kế hoạch học tập:
+      a. Các môn học cần tập trung
+      b. Mục tiêu điểm số cần đạt
+   2. Hoạt động ngoại khóa:
+      a. Câu lạc bộ nên tham gia
+      b. Kỹ năng cần phát triển
+
+IV. Kế hoạch Hành động
+   1. Các bước thực hiện ngắn hạn
+   2. Mục tiêu trung và dài hạn
+   3. Cách thức theo dõi tiến độ`);
 
       // Add welcome message when chat initializes
       const welcomeMessage = `
         <div class="message bot-message">
-          <p><strong>Bot:</strong> Xin chào! Mình là trợ lý AI tư vấn hướng nghiệp dành cho học sinh cấp 3.</p>
-          <p>Mình có thể giúp bạn:</p>
+          <p><strong>Bot:</strong> Xin chào! Mình là trợ lý AI tư vấn hướng nghiệp.</p>
+          <p>Để giúp bạn hiệu quả nhất, mình muốn tìm hiểu thêm về bạn. Bạn có thể chọn một trong các chủ đề sau:</p>
           <ul>
-            <li>Tìm hiểu ngành nghề phù hợp với sở thích và năng lực</li>
-            <li>Khám phá các trường đại học mơ ước</li>
-            <li>Lập kế hoạch học tập cho ngành yêu thích</li>
-            <li>Tư vấn chọn ban học (Tự nhiên/Xã hội) phù hợp</li>
+            <li>1️⃣ Sở thích và điểm mạnh của bạn</li>
+            <li>2️⃣ Môn học yêu thích ở trường</li>
+            <li>3️⃣ Định hướng nghề nghiệp</li>
+            <li>4️⃣ Các trường đại học mong muốn</li>
           </ul>
-          <p>Bạn muốn được tư vấn về vấn đề gì?</p>
+          <p>Bạn hãy chọn số từ 1-4 hoặc gõ câu hỏi của mình nhé!</p>
         </div>
       `;
       document.getElementById("chatbox").innerHTML = welcomeMessage;
+
+      async function handleUserChoice(choice) {
+        let nextPrompt = '';
+        switch(choice) {
+          case '1':
+            nextPrompt = "Bạn có thể chia sẻ về sở thích và điều gì khiến bạn cảm thấy hứng thú nhất không?";
+            break;
+          case '2':
+            nextPrompt = "Những môn học nào ở trường bạn cảm thấy yêu thích và đạt kết quả tốt?";
+            break;
+          case '3':
+            nextPrompt = "Bạn đã có ý tưởng gì về nghề nghiệp tương lai chưa?";
+            break;
+          case '4':
+            nextPrompt = "Bạn đang quan tâm đến trường đại học nào?";
+            break;
+          default:
+            return false;
+        }
+        
+        document.getElementById("chatbox").innerHTML += `
+          <div class="message bot-message">
+            <p><strong>Bot:</strong> ${nextPrompt}</p>
+          </div>
+        `;
+        return true;
+      }
 
       const jobData = await fetchJobDataFromSheet();
 
@@ -717,33 +765,43 @@
         const userMessage = document.getElementById("userMessage").value;
         if (!userMessage.trim()) return;
         
-        // Add user message with new styling
         document.getElementById("chatbox").innerHTML += `
-            <div class="message user-message">
-                <p><strong>Bạn:</strong> ${userMessage}</p>
-            </div>
+          <div class="message user-message">
+            <p><strong>Bạn:</strong> ${userMessage}</p>
+          </div>
         `;
         document.getElementById("userMessage").value = '';
 
-        // Tìm câu trả lời từ Google Sheets
-        let responseText = jobData.find(([question]) => userMessage.includes(question))?.[1];
+        // Kiểm tra nếu người dùng chọn số từ 1-4
+        if (/^[1-4]$/.test(userMessage)) {
+          if (await handleUserChoice(userMessage)) {
+            document.getElementById("chatbox").scrollTop = document.getElementById("chatbox").scrollHeight;
+            return;
+          }
+        }
 
-        // Nếu không có câu trả lời từ Google Sheets, sử dụng AI
+        // Xử lý câu trả lời thông thường
+        let responseText = jobData.find(([question]) => userMessage.includes(question))?.[1];
+        
         if (!responseText) {
           const result = await chat.sendMessage(userMessage);
           const response = await result.response;
           responseText = response.text();
         }
 
-        // Update bot response with new styling
+        const formattedResponse = responseText
+          .split('\n')
+          .filter(line => line.trim())
+          .map(line => `<p>${line}</p>`)
+          .join('');
+
         document.getElementById("chatbox").innerHTML += `
-            <div class="message bot-message">
-                <p><strong>Bot:</strong> ${responseText}</p>
-            </div>
+          <div class="message bot-message">
+            <p><strong>Bot:</strong></p>
+            ${formattedResponse}
+          </div>
         `;
         document.getElementById("chatbox").scrollTop = document.getElementById("chatbox").scrollHeight;
-
-        // Lưu dữ liệu câu hỏi và câu trả lời vào Google Sheets
         await saveDataToGoogleSheet([userMessage, responseText]);
       });
 
